@@ -36,25 +36,25 @@
   (setq comint-input-sender 'restrepl-input-sender)
   (setq comint-process-echoes nil)
 
-  (let ((process (start-process "restrepl" (current-buffer) "hexl")))
-    (set-process-query-on-exit-flag process nil)
-    (goto-char (point-max))
-    (insert restrepl-header)
-    (unless comint-use-prompt-regexp
-      (let ((inhibit-read-only t))
-        (add-text-properties
-         (point-min) (point-max)
-         '(rear-nonsticky t field output inhibit-line-move-field-capture t))))))
+  (unless (comint-check-proc (current-buffer))
+    (let ((process (start-process "restrepl" (current-buffer) "hexl")))
+      (set-process-query-on-exit-flag process nil)
+      (goto-char (point-max))
+      (insert restrepl-header)
+      (unless comint-use-prompt-regexp
+        (let ((inhibit-read-only t))
+          (add-text-properties
+           (point-min) (point-max)
+           '(rear-nonsticky t field output inhibit-line-move-field-capture t)))))))
 
 (defun restrepl ()
   "TODO"
   (interactive)
-  (let* ((buffer (comint-check-proc "*restrepl*")))
+  (let ((buffer (get-buffer restrepl-buffer-name)))
     (pop-to-buffer-same-window
-     (if (or buffer (not (derived-mode-p 'restrepl-mode))
-             (comint-check-proc (current-buffer)))
+     (if (or buffer (not (derived-mode-p 'restrepl-mode)))
          (get-buffer-create (or buffer restrepl-buffer-name))
        (current-buffer)))
-    (unless buffer (restrepl-mode))))
+    (restrepl-mode)))
 
 (provide 'restrepl)
