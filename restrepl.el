@@ -29,9 +29,6 @@
 
 (defvar restrepl-header "*** Welcome to REST REPL -- an HTTP REPL ***")
 
-(defun restrepl-input-sender (proc string)
-  string)
-
 (defun restrepl-read (input) input)
 
 (defun restrepl-eval (expr) expr)
@@ -48,6 +45,21 @@
 
 (defun restrepl-rep (input)
   (-> input restrepl-read restrepl-eval restrepl-print))
+
+(defun restrepl-input-sender (proc string)
+  (setq input string))
+
+(defun restrepl-send-input ()
+  (interactive)
+  (let (input)
+    (comint-send-input)                 ;ends up invoking restrepl-input-sender
+    (restrepl-rep input)))
+
+(defvar restrepl-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "RET") 'restrepl-send-input)
+    map)
+  "Keymap for `restrepl-mode'.")
 
 (define-derived-mode restrepl-mode comint-mode "RestRepl"
   "TODO"
