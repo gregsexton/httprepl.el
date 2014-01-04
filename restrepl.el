@@ -13,7 +13,9 @@
 ;;; Code:
 
 (require 'comint)
+(require 'dash)
 (require 'request)
+(require 's)
 
 (defcustom restrepl-buffer-name "*restrepl*"
   "TODO"
@@ -30,8 +32,27 @@
 (defun restrepl-input-sender (proc string)
   string)
 
+(defun restrepl-read (input) input)
+
+(defun restrepl-eval (expr) expr)
+
+(defun restrepl-insert (&rest args)
+  (dolist (string args)
+    (when string
+      (comint-output-filter (get-buffer-process (current-buffer)) string))))
+
+(defun restrepl-print (result)
+  (restrepl-insert result
+                   (when (not (s-ends-with-p "\n" result)) "\n")
+                   restrepl-prompt))
+
+(defun restrepl-rep (input)
+  (-> input restrepl-read restrepl-eval restrepl-print))
+
 (define-derived-mode restrepl-mode comint-mode "RestRepl"
   "TODO"
+  :group 'restrepl
+
   (setq comint-prompt-regexp (concat "^" (regexp-quote restrepl-prompt)))
   (setq comint-input-sender 'restrepl-input-sender)
   (setq comint-process-echoes nil)
@@ -39,14 +60,13 @@
   (unless (comint-check-proc (current-buffer))
     (let ((process (start-process "restrepl" (current-buffer) "hexl")))
       (set-process-query-on-exit-flag process nil)
-      ;; (insert restrepl-header)
-      (goto-char (point-max))
+      ;; TODO (insert restrepl-header)
       (unless comint-use-prompt-regexp
         (let ((inhibit-read-only t))
           (add-text-properties
            (point-min) (point-max)
-           '(rear-nonsticky t field output inhibit-line-move-field-capture t)))
-        (comint-output-filter process restrepl-prompt)))))
+           '(rear-nonsticky t field output inhibit-line-move-field-capture t))))
+      (restrepl-rep ""))))
 
 (defun restrepl ()
   "TODO"
