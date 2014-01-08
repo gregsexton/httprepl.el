@@ -29,9 +29,43 @@
 
 (defvar restrepl-header "*** Welcome to REST REPL -- an HTTP REPL ***")
 
-(defun restrepl-read (input) input)
+;;; lexer
 
-(defun restrepl-eval (expr) expr)
+(defun restrepl-get-token (input)
+  ;; TODO: these regexs are not complete
+  (let ((rexps '((http-get . "GET")
+                 (newline . "\n")
+                 (ws . "[ \t]+")
+                 (token . "[^ \t]+")
+                 (err . ".+"))))
+    (car
+     (-drop-while 'null
+                  (-map (lambda (rx)
+                          (-when-let (m (s-match (s-concat "^" (cdr rx)) input))
+                            (cons (car rx) (car m))))
+                        rexps)))))
+
+(defun restrepl-tokenize (input)
+  (let (token tokens)
+    (while (setq token (restrepl-get-token input))
+      (push token tokens)
+      (setq input (substring input (length (cdr token)) nil)))
+    (reverse tokens)))
+
+;;; parser
+
+;; TODO: handle err token
+(defun restrepl-parse (tokens) tokens)
+
+(defun restrepl-read (input)
+  (restrepl-parse (restrepl-tokenize input)))
+
+;;; evaluator
+
+(defun restrepl-eval (expr)
+  expr)
+
+;;; interface
 
 (defun restrepl-insert (&rest args)
   (dolist (string args)
