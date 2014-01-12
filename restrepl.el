@@ -1,3 +1,5 @@
+;;; -*- lexical-binding: t -*-
+
 ;;; restrepl.el -- An HTTP REPL
 
 ;; Author: Greg Sexton <gregsexton@gmail.com>
@@ -29,14 +31,14 @@
 
 (defvar restrepl-header "*** Welcome to REST REPL -- an HTTP REPL ***")
 
-;;; lexer
+;;; eager lexer
 
 (defun restrepl-get-token (input)
   ;; TODO: these regexs are not complete
   (let ((rexps '((http-get . "GET")
                  (newline . "\n")
                  (ws . "[ \t]+")
-                 (token . "[^ \t]+")
+                 (token . "[^ \t\n]+")
                  (err . ".+"))))
     (car
      (-drop-while 'null
@@ -52,18 +54,125 @@
       (setq input (substring input (length (cdr token)) nil)))
     (reverse tokens)))
 
+;;; parser combinator support -- I wish Emacs had namespaces
+;;; TODO: look in to using cl-flet or cl-labels
+
+(defun restrepl-p-prim-parser (err f p)
+  "Primitive used to create parsers. ERR should be a function
+taking a token and returning an error string. F is a function
+that manipulates state, taking a state and token and returning a
+state. P is a predicate, takes a token and returns a truthy value
+if it is to be consumed falsey otherwise. If the predicate
+returns the symbol 'ignore', the parser will be deemed successful
+but will not advance the token stream."
+  (lambda (tokens state)
+    (let* ((token (car tokens))
+           (new-state (funcall f state token))
+           (success (funcall p token)))
+      (if success
+          (list (if (equal success 'ignore) tokens (cdr tokens))
+                new-state)
+        (funcall err token)))))
+
+(defun restrepl-p-error-p (result)
+  "Check if the result of a parser was an error."
+  (stringp result))
+
+(defun restrepl-p-get-state (result)
+  (cadr result))
+
+(defun restrepl-p-get-remaining-tokens (result)
+  (car result))
+
+(defun restrepl-p-token (test-token &optional f)
+  (restrepl-p-prim-parser
+   (lambda (token)
+     (format "Parse error - not expecting token: %s" token))
+   (lambda (old-state token)
+     (if f (funcall f old-state token)
+       old-state))
+   (lambda (token)
+     (equal test-token (car token)))))
+
+(defun restrepl-p-return (f)
+  (restrepl-p-prim-parser
+   (lambda (token) "")
+   (lambda (old-state token) (f old-state))
+   (lambda (token) 'ignore)))
+
+(defun restrepl-p-seq (&rest parsers)
+  (-reduce-r (lambda (parser acc)
+               (lambda (tokens state)
+                 (let ((result (funcall parser tokens state)))
+                   (if (restrepl-p-error-p result)
+                       result
+                     (apply #'funcall acc result)))))
+             parsers))
+
+(defun restrepl-p-choice (&rest parsers)
+  (-reduce (lambda (acc parser)
+             (lambda (tokens state)
+               (let ((result (funcall acc tokens state)))
+                 (if (restrepl-p-error-p result)
+                     (funcall parser tokens state)
+                   result))))
+           parsers))
+
+(defun restrepl-p-true ()
+  (restrepl-p-prim-parser (lambda (token) "")
+                          (lambda (old-state token) old-state)
+                          (lambda (token) 'ignore)))
+
+(defun restrepl-p-many (parser)
+  (restrepl-p-choice (restrepl-p-seq parser
+                                     (lambda (tokens state)  ;emulate lazy semantics
+                                       (funcall (restrepl-p-many parser) tokens state)))
+                     (restrepl-p-true)))
+
+(defun restrepl-p-many1 (parser)
+  (restrepl-p-seq parser (restrepl-p-many parser)))
+
 ;;; parser
 
-;; TODO: handle err token
-(defun restrepl-parse (tokens) tokens)
+(defun restrepl-parse (tokens)
+  (let* ((anything (restrepl-p-many1
+                    (restrepl-p-choice
+                     (restrepl-p-token 'http-get
+                                       (lambda (old-state token)
+                                         (s-concat old-state (cdr token))))
+                     (restrepl-p-token 'ws
+                                       (lambda (old-state token)
+                                         (s-concat old-state (cdr token))))
+                     (restrepl-p-token 'token
+                                       (lambda (old-state token)
+                                         (s-concat old-state (cdr token)))))))
+         (op (restrepl-p-seq
+              (restrepl-p-token 'http-get
+                                (lambda (old-state token)
+                                  (cons '(method . get) old-state)))
+              (restrepl-p-token 'ws)
+              ;; TODO: extract a combining function - do NOT use destructuring bind
+              (lambda (tokens old-state)
+                (destructuring-bind (tokens state) (funcall anything tokens "")
+                  (list tokens (cons (cons 'url state) old-state))))))
+         (request (restrepl-p-seq op (restrepl-p-token 'newline))))
+    (funcall request tokens '())))
+
+;;; reader
 
 (defun restrepl-read (input)
-  (restrepl-parse (restrepl-tokenize input)))
+  (let ((result (restrepl-parse (restrepl-tokenize input))))
+    (if (restrepl-p-error-p result) result
+      (let ((tokens (restrepl-p-get-remaining-tokens result)))
+        (if tokens "Parse error - could not consume all tokens"
+          (restrepl-p-get-state result))))))
 
 ;;; evaluator
 
 (defun restrepl-eval (expr)
-  expr)
+  (if (restrepl-p-error-p expr)
+      expr
+    expr))
 
 ;;; interface
 
@@ -85,7 +194,7 @@
 
 (defun restrepl-send-input ()
   (interactive)
-  (let (input)
+  (let (input)                          ;TODO: I broke this when changed to lexical binding
     (comint-send-input)                 ;ends up invoking restrepl-input-sender
     (restrepl-rep input)))
 
