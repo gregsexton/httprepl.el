@@ -55,7 +55,6 @@
     (reverse tokens)))
 
 ;;; parser combinator support -- I wish Emacs had namespaces
-;;; TODO: look in to using cl-flet or cl-labels
 
 (defun restrepl-p-prim-parser (err f p)
   "Primitive used to create parsers. ERR should be a function
@@ -155,7 +154,7 @@ but will not advance the token stream."
               (lambda (tokens old-state)
                 (destructuring-bind (tokens state) (funcall anything tokens "")
                   (list tokens (cons (cons 'url state) old-state))))))
-         (request (restrepl-p-seq op (restrepl-p-token 'newline))))
+         (request op))
     (funcall request tokens '())))
 
 ;;; reader
@@ -170,8 +169,7 @@ but will not advance the token stream."
 ;;; evaluator
 
 (defun restrepl-eval (expr)
-  (if (restrepl-p-error-p expr)
-      expr
+  (if (restrepl-p-error-p expr) expr
     expr))
 
 ;;; interface
@@ -189,13 +187,14 @@ but will not advance the token stream."
 (defun restrepl-rep (input)
   (-> input restrepl-read restrepl-eval restrepl-print))
 
-(defun restrepl-input-sender (proc string)
-  (setq input string))
+(defun restrepl-input-sender (proc string) nil)
 
 (defun restrepl-send-input ()
   (interactive)
-  (let (input)                          ;TODO: I broke this when changed to lexical binding
-    (comint-send-input)                 ;ends up invoking restrepl-input-sender
+  (let ((input (buffer-substring
+                (process-mark (get-buffer-process (current-buffer)))
+                (point))))
+    (comint-send-input)        ;ends up invoking restrepl-input-sender
     (restrepl-rep input)))
 
 (defvar restrepl-mode-map
