@@ -148,7 +148,7 @@ but will not advance the token stream."
          (op (restrepl-p-seq
               (restrepl-p-token 'http-get
                                 (lambda (old-state token)
-                                  (cons '(method . get) old-state)))
+                                  (cons (cons 'method (cdr token)) old-state)))
               (restrepl-p-token 'ws)
               ;; TODO: extract a combining function - do NOT use destructuring bind
               (lambda (tokens old-state)
@@ -170,7 +170,13 @@ but will not advance the token stream."
 
 (defun restrepl-eval (expr)
   (if (restrepl-p-error-p expr) expr
-    expr))
+    (let* ((url (cdr (assoc 'url expr)))
+           (method (cdr (assoc 'method expr)))
+           (response (request url :type method :parser #'buffer-string :sync t)))
+      (s-concat
+       (request-response--raw-header response)
+       "\n"
+       (request-response-data response)))))
 
 ;;; interface
 
