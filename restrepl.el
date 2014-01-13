@@ -8,7 +8,7 @@
 
 ;; Provides an interactive interface for making HTTP
 ;; requests. Inspiration was drawn from looking at the ielm
-;; source. comint.el and request.el do much of the heavy lifting and
+;; source. comint.el and url/curl do much of the heavy lifting and
 ;; their respective variables will control some of the behaviour of
 ;; restrepl.
 
@@ -16,7 +16,6 @@
 
 (require 'comint)
 (require 'dash)
-(require 'request)
 (require 's)
 
 (defcustom restrepl-buffer-name "*restrepl*"
@@ -28,6 +27,19 @@
   "TODO"
   :type 'string
   :group 'restrepl)
+
+(defcustom restrepl-curl-exec "curl"
+  "TODO"
+  :type 'string
+  :group 'restrepl)
+
+(defcustom restrepl-curl-args "-i"
+  "TODO"
+  :type 'string
+  :group 'restrepl)
+
+;;; TODO: define a variable to allow switching the evaluation
+;;; engine. Make it a list of choices. curl, url, others?, etc.
 
 (defvar restrepl-header "*** Welcome to REST REPL -- an HTTP REPL ***")
 
@@ -168,15 +180,17 @@ but will not advance the token stream."
 
 ;;; evaluator
 
+;;; TODO: abstract the 'evaluation engine'
+;;; TODO: once abstracted, write an url-based engine
+
 (defun restrepl-eval (expr)
   (if (restrepl-p-error-p expr) expr
     (let* ((url (cdr (assoc 'url expr)))
-           (method (cdr (assoc 'method expr)))
-           (response (request url :type method :parser #'buffer-string :sync t)))
-      (s-concat
-       (request-response--raw-header response)
-       "\n"
-       (request-response-data response)))))
+           (method (s-upcase (cdr (assoc 'method expr)))))
+      ;; TODO: make robust
+      (shell-command-to-string
+       (format "%s %s -X %s %s"
+               restrepl-curl-exec restrepl-curl-args method url)))))
 
 ;;; interface
 
