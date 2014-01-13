@@ -236,13 +236,12 @@ but will not advance the token stream."
                        (start-process "restrepl" (current-buffer) "hexl")
                      (file-error (start-process "restrepl" (current-buffer) "cat")))))
       (set-process-query-on-exit-flag process nil)
-      ;; TODO (insert restrepl-header)
       (unless comint-use-prompt-regexp
         (let ((inhibit-read-only t))
           (add-text-properties
            (point-min) (point-max)
            '(rear-nonsticky t field output inhibit-line-move-field-capture t))))
-      (restrepl-rep ""))))
+      (restrepl-print restrepl-header))))
 
 (defun restrepl ()
   "TODO"
