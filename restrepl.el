@@ -179,18 +179,20 @@ but will not advance the token stream."
           (restrepl-p-get-state result))))))
 
 ;;; evaluator
+;;; TODO: write an url-based evaluator
 
-;;; TODO: abstract the 'evaluation engine'
-;;; TODO: once abstracted, write an url-based engine
+(defun restrepl-eval-curl (method url headers entity)
+  (with-output-to-string
+    (with-current-buffer
+      standard-output
+      (process-file restrepl-curl-exec nil t nil
+                    restrepl-curl-args "-X" method url))))
 
 (defun restrepl-eval (expr)
   (if (restrepl-p-error-p expr) expr
     (let* ((url (cdr (assoc 'url expr)))
            (method (s-upcase (cdr (assoc 'method expr)))))
-      ;; TODO: make robust
-      (shell-command-to-string
-       (format "%s %s -X %s %s"
-               restrepl-curl-exec restrepl-curl-args method url)))))
+      (restrepl-eval-curl method url nil nil))))
 
 ;;; interface
 
