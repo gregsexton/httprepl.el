@@ -47,7 +47,7 @@
 
 (defun restrepl-get-token (input)
   ;; TODO: these regexs are not complete
-  (let ((rexps '((http-get . "GET")
+  (let ((rexps '((http-method . "\\(GET\\|POST\\|PUT\\|DELETE\\|OPTIONS\\|HEAD\\|TRACE\\|CONNECT\\)")
                  (newline . "\n")
                  (ws . "[ \t]+")
                  (token . "[^ \t\n]+")
@@ -98,7 +98,7 @@ but will not advance the token stream."
 (defun restrepl-p-token (test-token &optional f)
   (restrepl-p-prim-parser
    (lambda (token)
-     (format "Parse error - not expecting token: %s" token))
+     (format "Parse error - not expecting token: %s" (cdr token)))
    (lambda (old-state token)
      (if f (funcall f old-state token)
        old-state))
@@ -148,7 +148,7 @@ but will not advance the token stream."
 (defun restrepl-parse (tokens)
   (let* ((anything (restrepl-p-many1
                     (restrepl-p-choice
-                     (restrepl-p-token 'http-get
+                     (restrepl-p-token 'http-method
                                        (lambda (old-state token)
                                          (s-concat old-state (cdr token))))
                      (restrepl-p-token 'ws
@@ -158,7 +158,7 @@ but will not advance the token stream."
                                        (lambda (old-state token)
                                          (s-concat old-state (cdr token)))))))
          (op (restrepl-p-seq
-              (restrepl-p-token 'http-get
+              (restrepl-p-token 'http-method
                                 (lambda (old-state token)
                                   (cons (cons 'method (cdr token)) old-state)))
               (restrepl-p-token 'ws)
@@ -219,6 +219,8 @@ but will not advance the token stream."
 
 (defun restrepl-send-input ()
   (interactive)
+  ;; TODO: move point to max first -- hitting ret in the middle of a
+  ;; line partially parses
   (let ((input (buffer-substring
                 (process-mark (get-buffer-process (current-buffer)))
                 (point))))
