@@ -33,7 +33,7 @@
   :type 'string
   :group 'restrepl)
 
-(defcustom restrepl-curl-args "-i"
+(defcustom restrepl-curl-args "-isS"
   "TODO"
   :type 'string
   :group 'restrepl)
