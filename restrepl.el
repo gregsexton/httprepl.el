@@ -181,12 +181,18 @@ but will not advance the token stream."
 ;;; evaluator
 ;;; TODO: write an url-based evaluator
 
+(defun restrepl-eval-curl-args (method url headers entity)
+  ;; TODO: check for prefix and allow manipulating the string
+  (let ((arg-str (format "%s -X %s %s"
+                         restrepl-curl-args method url)))
+    (s-split "[[:space:]]+" arg-str)))
+
 (defun restrepl-eval-curl (method url headers entity)
-  (with-output-to-string
-    (with-current-buffer
-      standard-output
-      (process-file restrepl-curl-exec nil t nil
-                    restrepl-curl-args "-X" method url))))
+  (let ((args (restrepl-eval-curl-args method url headers entity)))
+    (with-output-to-string
+      (with-current-buffer
+          standard-output
+        (apply 'process-file restrepl-curl-exec nil t nil args)))))
 
 (defun restrepl-eval (expr)
   (if (restrepl-p-error-p expr) expr
