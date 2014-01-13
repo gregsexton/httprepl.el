@@ -232,7 +232,9 @@ but will not advance the token stream."
   (setq comint-process-echoes nil)
 
   (unless (comint-check-proc (current-buffer))
-    (let ((process (start-process "restrepl" (current-buffer) "hexl")))
+    (let ((process (condition-case nil
+                       (start-process "restrepl" (current-buffer) "hexl")
+                     (file-error (start-process "restrepl" (current-buffer) "cat")))))
       (set-process-query-on-exit-flag process nil)
       ;; TODO (insert restrepl-header)
       (unless comint-use-prompt-regexp
