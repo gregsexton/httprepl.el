@@ -208,11 +208,22 @@ new state."
 ;;; evaluator
 ;;; TODO: write an url-based evaluator
 
+(defun restrepl-eval-curl-header-args (headers)
+  (-mapcat (lambda (header)
+             (list "-H" (s-concat (car header) ":" (cdr header))))
+           headers))
+
 (defun restrepl-eval-curl-args (method url headers entity)
-  ;; TODO: check for prefix and allow manipulating the string
+  ;; TODO: check for prefix and allow manipulating the args
   (let ((arg-str (format "%s -X %s %s"
                          restrepl-curl-args method url)))
-    (s-split "[[:space:]]+" arg-str)))
+    ;; TODO: not good enough, need to properly parse args or switch to
+    ;; having to quote and sending to a shell - in the case where
+    ;; restrepl-curl-args contains e.g. -H 'head: foo bar'
+    (-concat (s-split "[[:space:]]+" restrepl-curl-args)
+             (list "-X" method)
+             (restrepl-eval-curl-header-args headers)
+             (list url))))
 
 (defun restrepl-eval-curl (method url headers entity)
   (let ((args (restrepl-eval-curl-args method url headers entity)))
@@ -224,8 +235,9 @@ new state."
 (defun restrepl-eval (expr)
   (if (restrepl-p-error-p expr) expr
     (let* ((url (cdr (assoc 'url expr)))
-           (method (s-upcase (cdr (assoc 'method expr)))))
-      (restrepl-eval-curl method url nil nil))))
+           (method (s-upcase (cdr (assoc 'method expr))))
+           (headers (cdr (assoc 'headers expr))))
+      (restrepl-eval-curl method url headers nil))))
 
 ;;; interface
 

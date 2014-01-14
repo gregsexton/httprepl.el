@@ -29,6 +29,10 @@
                      (assoc "key")
                      cdr)))))
 
+(ert-deftest read-no-headers ()
+  (should (equal nil
+                 (cdr (assoc 'headers (restrepl-read "GET http://www.gregsexton.org"))))))
+
 (ert-deftest read-headers ()
   (should (equal '(("key2" . "value2") ("key1" . "value1"))
                  (->> "GET url\nkey1: value1\nkey2 : value2"
