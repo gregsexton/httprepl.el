@@ -134,19 +134,30 @@ but will not advance the token stream."
                           (lambda (old-state token) old-state)
                           (lambda (token) 'ignore)))
 
-(defun restrepl-p-many (parser)
+(defun restrepl-p-0+ (parser)
   (restrepl-p-choice (restrepl-p-seq parser
                                      (lambda (tokens state)  ;emulate lazy semantics
-                                       (funcall (restrepl-p-many parser) tokens state)))
+                                       (funcall (restrepl-p-0+ parser) tokens state)))
                      (restrepl-p-true)))
 
-(defun restrepl-p-many1 (parser)
-  (restrepl-p-seq parser (restrepl-p-many parser)))
+(defun restrepl-p-1+ (parser)
+  (restrepl-p-seq parser (restrepl-p-0+ parser)))
+
+(defun restrepl-p-comp (parser initial-state f)
+  "Compose a parser into a composite. INITIAL-STATE is the state
+passed to PARSER. F is a function that takes the currently
+accumulated state and the output state of PARSER and produces a
+new state."
+  (lambda (tokens state)
+    (let ((result (funcall parser tokens initial-state)))
+      (if (restrepl-p-error-p result) result
+        (list (restrepl-p-get-remaining-tokens result)
+              (funcall f state (restrepl-p-get-state result)))))))
 
 ;;; parser
 
 (defun restrepl-parse (tokens)
-  (let* ((anything (restrepl-p-many1
+  (let* ((anything (restrepl-p-1+
                     (restrepl-p-choice
                      (restrepl-p-token 'http-method
                                        (lambda (old-state token)
@@ -162,10 +173,8 @@ but will not advance the token stream."
                                 (lambda (old-state token)
                                   (cons (cons 'method (cdr token)) old-state)))
               (restrepl-p-token 'ws)
-              ;; TODO: extract a combining function - do NOT use destructuring bind
-              (lambda (tokens old-state)
-                (destructuring-bind (tokens state) (funcall anything tokens "")
-                  (list tokens (cons (cons 'url state) old-state))))))
+              (restrepl-p-comp anything "" (lambda (acc-state state)
+                                             (cons (cons 'url state) acc-state)))))
          (request op))
     (funcall request tokens '())))
 
