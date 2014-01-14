@@ -48,9 +48,10 @@
 (defun restrepl-get-token (input)
   ;; TODO: these regexs are not complete
   (let ((rexps '((http-method . "\\(GET\\|POST\\|PUT\\|DELETE\\|OPTIONS\\|HEAD\\|TRACE\\|CONNECT\\)")
+                 (header-sep . ":")
                  (newline . "\n")
                  (ws . "[ \t]+")
-                 (token . "[^ \t\n]+")
+                 (token . "[^ \t\n:]+")
                  (err . ".+"))))
     (car
      (-drop-while 'null
@@ -105,10 +106,10 @@ but will not advance the token stream."
    (lambda (token)
      (equal test-token (car token)))))
 
-(defun restrepl-p-return (f)
+(defun restrepl-p-state (x)
   (restrepl-p-prim-parser
    (lambda (token) "")
-   (lambda (old-state token) (f old-state))
+   (lambda (old-state token) x)
    (lambda (token) 'ignore)))
 
 (defun restrepl-p-seq (&rest parsers)
@@ -134,16 +135,19 @@ but will not advance the token stream."
                           (lambda (old-state token) old-state)
                           (lambda (token) 'ignore)))
 
+(defun restrepl-p-optional (parser)
+  (restrepl-p-choice parser (restrepl-p-true)))
+
 (defun restrepl-p-0+ (parser)
-  (restrepl-p-choice (restrepl-p-seq parser
-                                     (lambda (tokens state)  ;emulate lazy semantics
-                                       (funcall (restrepl-p-0+ parser) tokens state)))
-                     (restrepl-p-true)))
+  (restrepl-p-optional
+   (restrepl-p-seq parser
+                   (lambda (tokens state) ;emulate lazy semantics
+                     (funcall (restrepl-p-0+ parser) tokens state)))))
 
 (defun restrepl-p-1+ (parser)
   (restrepl-p-seq parser (restrepl-p-0+ parser)))
 
-(defun restrepl-p-comp (parser initial-state f)
+(defun restrepl-p-comp (parser f &optional initial-state)
   "Compose a parser into a composite. INITIAL-STATE is the state
 passed to PARSER. F is a function that takes the currently
 accumulated state and the output state of PARSER and produces a
@@ -157,24 +161,38 @@ new state."
 ;;; parser
 
 (defun restrepl-parse (tokens)
-  (let* ((anything (restrepl-p-1+
-                    (restrepl-p-choice
-                     (restrepl-p-token 'http-method
-                                       (lambda (old-state token)
-                                         (s-concat old-state (cdr token))))
-                     (restrepl-p-token 'ws
-                                       (lambda (old-state token)
-                                         (s-concat old-state (cdr token))))
-                     (restrepl-p-token 'token
-                                       (lambda (old-state token)
-                                         (s-concat old-state (cdr token)))))))
+  (let* ((concat-token-val (lambda (old-state token)
+                             (s-concat old-state (cdr token))))
+         (anything (restrepl-p-seq
+                    (restrepl-p-state "")
+                    (restrepl-p-1+
+                     (restrepl-p-choice
+                      (restrepl-p-token 'http-method concat-token-val)
+                      (restrepl-p-token 'header-sep  concat-token-val)
+                      (restrepl-p-token 'ws          concat-token-val)
+                      (restrepl-p-token 'token       concat-token-val)))))
+         (header (restrepl-p-seq
+                  (restrepl-p-token 'token (lambda (old-state token) (cdr token)))
+                  (restrepl-p-optional (restrepl-p-token 'ws))
+                  (restrepl-p-token 'header-sep)
+                  (restrepl-p-optional (restrepl-p-token 'ws))
+                  (restrepl-p-comp anything (lambda (acc-state state)
+                                              (cons acc-state state)))))
+         (headers (restrepl-p-seq
+                   (restrepl-p-state '())
+                   (restrepl-p-0+ (restrepl-p-seq
+                                   (restrepl-p-token 'newline)
+                                   (restrepl-p-comp header (lambda (acc-state state)
+                                                             (cons state acc-state)))))))
          (op (restrepl-p-seq
               (restrepl-p-token 'http-method
                                 (lambda (old-state token)
                                   (cons (cons 'method (cdr token)) old-state)))
               (restrepl-p-token 'ws)
-              (restrepl-p-comp anything "" (lambda (acc-state state)
-                                             (cons (cons 'url state) acc-state)))))
+              (restrepl-p-comp anything (lambda (acc-state state)
+                                          (cons (cons 'url state) acc-state)))
+              (restrepl-p-comp headers (lambda (acc-state state)
+                                         (cons (cons 'headers state) acc-state)))))
          (request op))
     (funcall request tokens '())))
 
