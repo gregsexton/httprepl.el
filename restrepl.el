@@ -55,7 +55,7 @@
     (car
      (-drop-while 'null
                   (-map (lambda (rx)
-                          (-when-let (m (s-match (s-concat "^" (cdr rx)) input))
+                          (-when-let (m (s-match (s-concat "\\`" (cdr rx)) input))
                             (cons (car rx) (car m))))
                         rexps)))))
 
@@ -162,6 +162,8 @@ new state."
 (defun restrepl-parse (tokens)
   (let* ((concat-token-val (lambda (old-state token)
                              (s-concat old-state (cdr token))))
+         (build-assoc (lambda (key)
+                        (lambda (acc-state state) (cons (cons key state) acc-state))))
          (anything (restrepl-p-seq
                     (restrepl-p-state "")
                     (restrepl-p-1+
@@ -183,15 +185,24 @@ new state."
                                    (restrepl-p-token 'newline)
                                    (restrepl-p-comp header (lambda (acc-state state)
                                                              (cons state acc-state)))))))
+         ;; TODO: support entities in buffers or files
+         (entity (restrepl-p-optional
+                  (restrepl-p-seq
+                   (restrepl-p-state "")
+                   (restrepl-p-token 'newline)
+                   (restrepl-p-token 'newline)
+                   (restrepl-p-0+ (restrepl-p-choice
+                                   (restrepl-p-comp anything (lambda (acc-state state)
+                                                               (s-concat acc-state state)))
+                                   (restrepl-p-token 'newline concat-token-val))))))
          (request (restrepl-p-seq
                    (restrepl-p-token 'http-method
                                      (lambda (old-state token)
                                        (cons (cons 'method (cdr token)) old-state)))
                    (restrepl-p-token 'ws)
-                   (restrepl-p-comp anything (lambda (acc-state state)
-                                               (cons (cons 'url state) acc-state)))
-                   (restrepl-p-comp headers (lambda (acc-state state)
-                                              (cons (cons 'headers state) acc-state))))))
+                   (restrepl-p-comp anything (funcall build-assoc 'url))
+                   (restrepl-p-comp headers (funcall build-assoc 'headers))
+                   (restrepl-p-comp entity (funcall build-assoc 'entity)))))
     (funcall request tokens '())))
 
 ;;; reader

@@ -39,3 +39,17 @@
                    restrepl-read
                    (assoc 'headers)
                    cdr))))
+
+(ert-deftest read-entity-without-headers ()
+  (should (equal "some text\nafter everything"
+                 (->> "GET url\n\nsome text\nafter everything"
+                   restrepl-read
+                   (assoc 'entity)
+                   cdr))))
+
+(ert-deftest read-entity-with-headers ()
+  (should (equal "some text\n\n  GET  after everything"
+                 (->> "GET url\nkey1: value1\nkey2 : value2\n\nsome text\n\n  GET  after everything"
+                   restrepl-read
+                   (assoc 'entity)
+                   cdr))))
