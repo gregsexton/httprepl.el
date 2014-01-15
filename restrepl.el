@@ -184,16 +184,15 @@ new state."
                                    (restrepl-p-token 'newline)
                                    (restrepl-p-comp header (lambda (acc-state state)
                                                              (cons state acc-state)))))))
-         (op (restrepl-p-seq
-              (restrepl-p-token 'http-method
-                                (lambda (old-state token)
-                                  (cons (cons 'method (cdr token)) old-state)))
-              (restrepl-p-token 'ws)
-              (restrepl-p-comp anything (lambda (acc-state state)
-                                          (cons (cons 'url state) acc-state)))
-              (restrepl-p-comp headers (lambda (acc-state state)
-                                         (cons (cons 'headers state) acc-state)))))
-         (request op))
+         (request (restrepl-p-seq
+                   (restrepl-p-token 'http-method
+                                     (lambda (old-state token)
+                                       (cons (cons 'method (cdr token)) old-state)))
+                   (restrepl-p-token 'ws)
+                   (restrepl-p-comp anything (lambda (acc-state state)
+                                               (cons (cons 'url state) acc-state)))
+                   (restrepl-p-comp headers (lambda (acc-state state)
+                                              (cons (cons 'headers state) acc-state))))))
     (funcall request tokens '())))
 
 ;;; reader
