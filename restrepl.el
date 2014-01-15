@@ -68,6 +68,9 @@
 
 ;;; parser combinator support -- I wish Emacs had namespaces
 
+;;; TODO: optimize recursive stack depth -- hits depth quite easily
+;;; parsing an entity of more than a few lines.
+
 (defun restrepl-p-prim-parser (err f p)
   "Primitive used to create parsers. ERR should be a function
 taking a token and returning an error string. F is a function
@@ -227,6 +230,8 @@ new state."
   (-concat restrepl-curl-args
            (list "-X" method)
            (restrepl-eval-curl-header-args headers)
+           (when entity
+             (list "-d" entity))
            (list url)))
 
 (defun restrepl-eval-curl (method url headers entity)
@@ -240,8 +245,9 @@ new state."
   (if (restrepl-p-error-p expr) expr
     (let* ((url (cdr (assoc 'url expr)))
            (method (s-upcase (cdr (assoc 'method expr))))
-           (headers (cdr (assoc 'headers expr))))
-      (restrepl-eval-curl method url headers nil))))
+           (headers (cdr (assoc 'headers expr)))
+           (entity (cdr (assoc 'entity expr))))
+      (restrepl-eval-curl method url headers entity))))
 
 ;;; interface
 
