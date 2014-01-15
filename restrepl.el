@@ -46,7 +46,6 @@
 ;;; eager lexer
 
 (defun restrepl-get-token (input)
-  ;; TODO: these regexs are not complete
   (let ((rexps '((http-method . "\\(GET\\|POST\\|PUT\\|DELETE\\|OPTIONS\\|HEAD\\|TRACE\\|CONNECT\\)")
                  (header-sep . ":")
                  (newline . "\n")
@@ -257,11 +256,9 @@ new state."
 
 (defun restrepl-send-input ()
   (interactive)
-  ;; TODO: move point to max first -- hitting ret in the middle of a
-  ;; line partially parses
   (let ((input (buffer-substring
                 (process-mark (get-buffer-process (current-buffer)))
-                (point))))
+                (point-max))))
     (comint-send-input)        ;ends up invoking restrepl-input-sender
     (restrepl-rep input)))
 
