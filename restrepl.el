@@ -24,6 +24,11 @@
   :type 'string
   :group 'restrepl)
 
+(defcustom restrepl-response-buffer-name "*rr-response*"
+  "TODO"
+  :type 'string
+  :group 'restrepl)
+
 (defcustom restrepl-prompt "> "
   "TODO"
   :type 'string
@@ -44,6 +49,13 @@
 should take the url and return the transformed url. You could
 make use of this to add custom signing logic for example or
 whatever really."
+  :type 'sexp
+  :group 'restrepl)
+
+(defcustom restrepl-response-middleware '()
+  "Functions applied to a response buffer in sequence. Each
+function should take the buffer and return the buffer, after
+manipulating it as desired."
   :type 'sexp
   :group 'restrepl)
 
@@ -269,6 +281,31 @@ new state."
            (entity (cdr (assoc 'entity expr))))
       (restrepl-eval-curl method url headers entity))))
 
+;;; features
+
+(defun restrepl-get-response ()
+  (let ((proc (get-buffer-process (current-buffer))))
+    (save-excursion
+      (let ((pmark (progn (goto-char (process-mark proc))
+                          (forward-line -1)
+                          (end-of-line)
+                          (point-marker))))
+        (buffer-substring-no-properties comint-last-input-end pmark)))))
+
+(defun restrepl-display-response (response)
+  (let ((buffer (get-buffer-create restrepl-response-buffer-name)))
+    (with-current-buffer buffer
+      (erase-buffer)
+      (fundamental-mode)
+      (insert response))
+    (pop-to-buffer buffer)))
+
+(defun restrepl-open-response ()
+  (interactive)
+  (->> (restrepl-get-response)
+    restrepl-display-response
+    (restrepl-apply-middleware restrepl-response-middleware)))
+
 ;;; interface
 
 (defun restrepl-insert (&rest args)
@@ -297,6 +334,7 @@ new state."
 (defvar restrepl-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "RET") 'restrepl-send-input)
+    (define-key map (kbd "C-c C-c") 'restrepl-open-response)
     map)
   "Keymap for `restrepl-mode'.")
 
