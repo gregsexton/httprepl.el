@@ -1,6 +1,4 @@
-;;; -*- lexical-binding: t -*-
-
-;;; restrepl.el -- An HTTP REPL
+;;; restrepl.el -- An HTTP REPL  -*- lexical-binding: t -*-
 
 ;; Author: Greg Sexton <gregsexton@gmail.com>
 
@@ -17,6 +15,9 @@
 (require 'comint)
 (require 'dash)
 (require 's)
+(require 'url)
+
+;;; customisation and variables
 
 (defcustom restrepl-buffer-name "*restrepl*"
   "TODO"
@@ -38,10 +39,25 @@
   :type 'sexp
   :group 'restrepl)
 
+(defcustom restrepl-url-middleware '(url-encode-url)
+  "Functions applied to a request url in sequence. Each function
+should take the url and return the transformed url. You could
+make use of this to add custom signing logic for example or
+whatever really."
+  :type 'sexp
+  :group 'restrepl)
+
 ;;; TODO: define a variable to allow switching the evaluation
 ;;; engine. Make it a list of choices. curl, url, others?, etc.
 
 (defvar restrepl-header "*** Welcome to REST REPL -- an HTTP REPL ***")
+
+;;; utilities
+
+(defun restrepl-apply-middleware (middleware input)
+  (-reduce-from (lambda (acc ware) (funcall ware acc))
+                input
+                middleware))
 
 ;;; eager lexer
 
@@ -246,7 +262,8 @@ new state."
 
 (defun restrepl-eval (expr)
   (if (restrepl-p-error-p expr) expr
-    (let* ((url (cdr (assoc 'url expr)))
+    (let* ((url (restrepl-apply-middleware
+                 restrepl-url-middleware (cdr (assoc 'url expr))))
            (method (s-upcase (cdr (assoc 'method expr))))
            (headers (cdr (assoc 'headers expr)))
            (entity (cdr (assoc 'entity expr))))
