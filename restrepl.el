@@ -68,9 +68,6 @@
 
 ;;; parser combinator support -- I wish Emacs had namespaces
 
-;;; TODO: optimize recursive stack depth -- hits depth quite easily
-;;; parsing an entity of more than a few lines.
-
 (defun restrepl-p-prim-parser (err f p)
   "Primitive used to create parsers. ERR should be a function
 taking a token and returning an error string. F is a function
@@ -141,10 +138,16 @@ but will not advance the token stream."
   (restrepl-p-choice parser (restrepl-p-true)))
 
 (defun restrepl-p-0+ (parser)
-  (restrepl-p-optional
-   (restrepl-p-seq parser
-                   (lambda (tokens state) ;emulate lazy semantics
-                     (funcall (restrepl-p-0+ parser) tokens state)))))
+  ;; this was originally recursive and built out of optional and seq
+  ;; but hits the stack size limit quickly. Not sure if elisp has
+  ;; tail-recursion optimization and/or lazy evaluation?
+  (lambda (tokens state)
+    (let ((prev-result (list tokens state))
+          (result (funcall parser tokens state)))
+     (while (not (restrepl-p-error-p result))
+       (setq prev-result result)
+       (setq result (apply 'funcall parser result)))
+     prev-result)))
 
 (defun restrepl-p-1+ (parser)
   (restrepl-p-seq parser (restrepl-p-0+ parser)))
