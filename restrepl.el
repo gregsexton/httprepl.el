@@ -52,12 +52,34 @@ whatever really."
   :type 'sexp
   :group 'restrepl)
 
-(defcustom restrepl-response-middleware '(restrepl-comment-headers)
+(defcustom restrepl-response-middleware
+  '(restrepl-apply-content-type-middleware restrepl-comment-headers)
   "Functions applied to a response buffer in sequence. Each
 function should take the buffer and return the buffer, after
 manipulating it as desired. For example, you may wish to add
 restrepl-delete-headers to this list if you do not wish to see
 the headers."
+  :type 'sexp
+  :group 'restrepl)
+
+(defcustom restrepl-content-type-alist
+  '(("text/html" . html)
+    ("application/json" . json))
+  "regexp -> key"
+  :type 'sexp
+  :group 'restrepl)
+
+;TODO: applying modes is awkward while returning the buffer - discard
+;threading the buffer?
+(defun restrepl-html-mode (buffer)
+  (restrepl-response-middleware (html-mode)))
+(defun restrepl-json-mode (buffer)
+  (restrepl-response-middleware (js-mode)))
+
+(defcustom restrepl-content-type-middleware-alist
+  '((html . (restrepl-html-mode))
+    (json . (restrepl-json-mode)))
+  "TODO"
   :type 'sexp
   :group 'restrepl)
 
@@ -78,6 +100,15 @@ the headers."
     (with-current-buffer buffer
       (goto-char (point-min))
       (+ 1 (re-search-forward "^$")))))
+
+(defun restrepl-get-content-type (buffer)
+  (save-excursion
+    (with-current-buffer buffer
+      (goto-char (point-min))
+      (-when-let (header-val (re-search-forward
+                              "^[[:space:]]*Content-Type[[:space:]]*:[[:space:]]*"
+                              (restrepl-find-headers-end buffer) t))
+        (buffer-substring-no-properties header-val (point-at-eol))))))
 
 ;;; eager lexer
 
@@ -305,6 +336,15 @@ new state."
 (defun restrepl-comment-headers (buffer)
   (restrepl-response-middleware
    (comment-region (point-min) (restrepl-find-headers-end buffer))))
+
+(defun restrepl-apply-content-type-middleware (buffer)
+  (-when-let (content-type (restrepl-get-content-type buffer))
+    (-> restrepl-content-type-alist
+      (->> (-first (lambda (alist) (s-matches-p (car alist) content-type))))
+      cdr
+      (assoc restrepl-content-type-middleware-alist)
+      cdr
+      (restrepl-apply-middleware buffer))))
 
 (defun restrepl-get-response ()
   (let ((proc (get-buffer-process (current-buffer))))
