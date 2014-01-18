@@ -64,21 +64,25 @@ the headers."
 
 (defcustom restrepl-content-type-alist
   '(("text/html" . html)
-    ("application/json" . json))
-  "regexp -> key"
+    ("application/json" . js)
+    ("application/javascript" . js)
+    ("text/xml" . xml)
+    ("text/plain" . text)
+    ("application/xml" . xml)
+    ("html" . html)
+    ("json" . js)
+    ("javascript" . js)
+    ("xml" . xml)
+    ("text" . text))
+  "TODO: regexp -> key in precedence order. not definitive obviously!"
   :type 'sexp
   :group 'restrepl)
 
-;TODO: applying modes is awkward while returning the buffer - discard
-;threading the buffer?
-(defun restrepl-html-mode (buffer)
-  (restrepl-response-middleware (html-mode)))
-(defun restrepl-json-mode (buffer)
-  (restrepl-response-middleware (js-mode)))
-
 (defcustom restrepl-content-type-middleware-alist
-  '((html . (restrepl-html-mode))
-    (json . (restrepl-json-mode)))
+  '((html . ((lambda (b) (html-mode) b)))
+    (js . ((lambda (b) (js-mode) b)))
+    (xml . ((lambda (b) (xml-mode) b)))
+    (text . ((lambda (b) (text-mode) b))))
   "TODO"
   :type 'sexp
   :group 'restrepl)
