@@ -52,10 +52,12 @@ whatever really."
   :type 'sexp
   :group 'restrepl)
 
-(defcustom restrepl-response-middleware '()
+(defcustom restrepl-response-middleware '(restrepl-comment-headers)
   "Functions applied to a response buffer in sequence. Each
 function should take the buffer and return the buffer, after
-manipulating it as desired."
+manipulating it as desired. For example, you may wish to add
+restrepl-delete-headers to this list if you do not wish to see
+the headers."
   :type 'sexp
   :group 'restrepl)
 
@@ -70,6 +72,12 @@ manipulating it as desired."
   (-reduce-from (lambda (acc ware) (funcall ware acc))
                 input
                 middleware))
+
+(defun restrepl-find-headers-end (buffer)
+  (save-excursion
+    (with-current-buffer buffer
+      (goto-char (point-min))
+      (+ 1 (re-search-forward "^$")))))
 
 ;;; eager lexer
 
@@ -281,7 +289,22 @@ new state."
            (entity (cdr (assoc 'entity expr))))
       (restrepl-eval-curl method url headers entity))))
 
-;;; features
+;;; open response
+
+(defmacro restrepl-response-middleware (&rest body)
+  "Assumes expands in an environment with a bound var 'buffer'."
+  `(save-excursion
+     (with-current-buffer buffer
+       ,@body)
+     buffer))
+
+(defun restrepl-delete-headers (buffer)
+  (restrepl-response-middleware
+   (kill-region (point-min) (restrepl-find-headers-end buffer))))
+
+(defun restrepl-comment-headers (buffer)
+  (restrepl-response-middleware
+   (comment-region (point-min) (restrepl-find-headers-end buffer))))
 
 (defun restrepl-get-response ()
   (let ((proc (get-buffer-process (current-buffer))))
