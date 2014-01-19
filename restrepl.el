@@ -308,12 +308,16 @@ new state."
              (list "-d" entity))
            (list url)))
 
+(defun restrepl-insertion-filter (buffer)
+  (lambda (proc string)
+    (with-current-buffer buffer
+      (restrepl-print string))))
+
 (defun restrepl-eval-curl (method url headers entity)
-  (let ((args (restrepl-eval-curl-args method url headers entity)))
-    (with-output-to-string
-      (with-current-buffer
-          standard-output
-        (apply 'process-file restrepl-curl-exec nil t nil args)))))
+  (let* ((args (restrepl-eval-curl-args method url headers entity))
+         (process (apply 'start-process "restrepl-curl" nil restrepl-curl-exec args)))
+    (set-process-filter process (restrepl-insertion-filter (current-buffer)))
+    nil))
 
 (defun restrepl-eval (expr)
   (if (restrepl-p-error-p expr) expr
@@ -381,9 +385,10 @@ new state."
       (comint-output-filter (get-buffer-process (current-buffer)) string))))
 
 (defun restrepl-print (result)
-  (restrepl-insert result
-                   (when (not (s-ends-with-p "\n" result)) "\n")
-                   restrepl-prompt))
+  (when result
+    (restrepl-insert result
+                     (when (not (s-ends-with-p "\n" result)) "\n")
+                     restrepl-prompt)))
 
 (defun restrepl-rep (input)
   (-> input restrepl-read restrepl-eval restrepl-print))
