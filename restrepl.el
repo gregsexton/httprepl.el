@@ -6,7 +6,7 @@
 
 ;; Provides an interactive interface for making HTTP
 ;; requests. Inspiration was drawn from looking at the ielm
-;; source. comint.el and url/curl do much of the heavy lifting and
+;; source. comint.el and url or curl do much of the heavy lifting and
 ;; their respective variables will control some of the behaviour of
 ;; restrepl.
 
@@ -92,7 +92,7 @@ the headers."
 
 (defvar restrepl-header "*** Welcome to REST REPL -- an HTTP REPL ***")
 
-;;; utilities
+;;; utils
 
 (defun restrepl-apply-middleware (middleware input)
   (-reduce-from (lambda (acc ware) (funcall ware acc))
@@ -114,7 +114,7 @@ the headers."
                               (restrepl-find-headers-end buffer) t))
         (buffer-substring-no-properties header-val (point-at-eol))))))
 
-;;; eager lexer
+;;; lexer
 
 (defun restrepl-get-token (input)
   (let ((rexps '((http-method . "\\(GET\\|POST\\|PUT\\|DELETE\\|OPTIONS\\|HEAD\\|TRACE\\|CONNECT\\)")
@@ -137,7 +137,7 @@ the headers."
       (setq input (substring input (length (cdr token)) nil)))
     (reverse tokens)))
 
-;;; parser combinator support -- I wish Emacs had namespaces
+;;; parser combinator support
 
 (defun restrepl-p-prim-parser (err f p)
   "Primitive used to create parsers. ERR should be a function
