@@ -63,27 +63,27 @@ the headers."
   :group 'restrepl)
 
 (defcustom restrepl-content-type-alist
-  '(("text/html" . html)
-    ("application/json" . js)
+  '(("text/html"              . html)
+    ("application/json"       . js)
     ("application/javascript" . js)
-    ("text/xml" . xml)
-    ("text/plain" . text)
-    ("application/xml" . xml)
-    ("html" . html)
-    ("json" . js)
-    ("javascript" . js)
-    ("xml" . xml)
-    ("text" . text))
+    ("text/xml"               . xml)
+    ("text/plain"             . text)
+    ("application/xml"        . xml)
+    ("html"                   . html)
+    ("json"                   . js)
+    ("javascript"             . js)
+    ("xml"                    . xml)
+    ("text"                   . text))
   "TODO: regexp -> key in precedence order. not definitive obviously!"
   :type 'sexp
   :group 'restrepl)
 
 (defcustom restrepl-content-type-middleware-alist
   '((html . ((lambda (b) (html-mode) b)))
-    (js . ((lambda (b) (js-mode) b)))
-    (xml . ((lambda (b) (xml-mode) b)))
+    (js   . ((lambda (b) (js-mode) b)))
+    (xml  . ((lambda (b) (xml-mode) b)))
     (text . ((lambda (b) (text-mode) b))))
-  "TODO"
+  "TODO put your pretty print functions here."
   :type 'sexp
   :group 'restrepl)
 
