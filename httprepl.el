@@ -24,7 +24,7 @@
   :type 'string
   :group 'httprepl)
 
-(defcustom httprepl-response-buffer-name "*rr-response*"
+(defcustom httprepl-response-buffer-name "*http-response*"
   "TODO"
   :type 'string
   :group 'httprepl)
@@ -34,7 +34,7 @@
   :type 'string
   :group 'httprepl)
 
-(defcustom httprepl-curl-exec "curl"
+(defcustom httprepl-curl-exec (executable-find "curl")
   "TODO"
   :type 'string
   :group 'httprepl)
@@ -87,8 +87,10 @@ the headers."
   :type 'sexp
   :group 'httprepl)
 
-;;; TODO: define a variable to allow switching the evaluation
-;;; engine. Make it a list of choices. curl, url, others?, etc.
+(defcustom httprepl-backend (if httprepl-curl-exec 'curl 'url)
+  "TODO choices are url or curl"
+  :type 'symbol
+  :group 'httprepl)
 
 (defvar httprepl-header "*** Welcome to HTTP REPL ***")
 
@@ -262,7 +264,6 @@ new state."
                                    (httprepl-p-token 'newline)
                                    (httprepl-p-comp header (lambda (acc-state state)
                                                              (cons state acc-state)))))))
-         ;; TODO: support entities in buffers or files
          (entity (httprepl-p-optional
                   (httprepl-p-seq
                    (httprepl-p-state "")
