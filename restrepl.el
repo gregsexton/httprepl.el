@@ -300,13 +300,15 @@ new state."
            headers))
 
 (defun restrepl-eval-curl-args (method url headers entity)
-  ;; TODO: check for prefix and allow manipulating the args
-  (-concat restrepl-curl-args
-           (list "-X" method)
-           (restrepl-eval-curl-header-args headers)
-           (when entity
-             (list "-d" entity))
-           (list url)))
+  (let ((args (-concat restrepl-curl-args
+                       (list "-X" method)
+                       (restrepl-eval-curl-header-args headers)
+                       (when entity
+                         (list "-d" entity))
+                       (list url))))
+    (if current-prefix-arg
+        (read-from-minibuffer "curl args: " (prin1-to-string args) nil t)
+      args)))
 
 (defun restrepl-insertion-filter (buffer)
   (lambda (proc string)
