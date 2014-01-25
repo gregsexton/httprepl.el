@@ -20,27 +20,32 @@
 ;;; customisation and variables
 
 (defcustom httprepl-buffer-name "*httprepl*"
-  "TODO"
+  "Name of the buffer httprepl will look for or create on
+startup."
   :type 'string
   :group 'httprepl)
 
 (defcustom httprepl-response-buffer-name "*http-response*"
-  "TODO"
+  "Name of the buffer httprepl will use when opening responses."
   :type 'string
   :group 'httprepl)
 
 (defcustom httprepl-prompt "> "
-  "TODO"
+  "Prompt used by httprepl."
   :type 'string
   :group 'httprepl)
 
 (defcustom httprepl-curl-exec (executable-find "curl")
-  "TODO"
+  "Path to the curl executable. Ensure this is set correctly when
+using the curl backend."
   :type 'string
   :group 'httprepl)
 
 (defcustom httprepl-curl-args '("-isS")
-  "TODO"
+  "List of args supplied to curl when executing requests. There
+is no need to escape arguments for a shell. Just add to this
+list. Execute a request with a prefix to alter this for a single
+request."
   :type 'sexp
   :group 'httprepl)
 
@@ -57,7 +62,7 @@ whatever really."
   "Functions applied to a response buffer in sequence. Each
 function should take the buffer and return the buffer, after
 manipulating it as desired. For example, you may wish to add
-httprepl-delete-headers to this list if you do not wish to see
+`httprepl-delete-headers' to this list if you do not wish to see
 the headers."
   :type 'sexp
   :group 'httprepl)
@@ -74,7 +79,13 @@ the headers."
     ("javascript"             . js)
     ("xml"                    . xml)
     ("text"                   . text))
-  "TODO: regexp -> key in precedence order. not definitive obviously!"
+  "alist mapping content-type values to keys to be looked up in
+`httprepl-content-type-middleware-alist'. Defined in descending
+precedence order. If the function
+`httprepl-apply-content-type-middleware' is in
+`httprepl-response-middleware', then this list is consulted to work
+out which functions to apply to the request buffer. Each entry
+should be of the form (REGEX . KEY)."
   :type 'sexp
   :group 'httprepl)
 
@@ -83,12 +94,22 @@ the headers."
     (js   . ((lambda (b) (js-mode) b)))
     (xml  . ((lambda (b) (xml-mode) b)))
     (text . ((lambda (b) (text-mode) b))))
-  "TODO put your pretty print functions here."
+  "alist mapping a content-type key - indirectly looked up using
+`httprepl-content-type-alist' - to a list of functions to apply
+to a response buffer. Each function should take a buffer,
+manipulate it as desired and then return the buffer for the next
+function to work with. Add any manipulation functions you like
+here. This is where you should add a pretty-printing function for
+example."
   :type 'sexp
   :group 'httprepl)
 
 (defcustom httprepl-backend (if httprepl-curl-exec 'curl 'url)
-  "TODO choices are url or curl"
+  "Symbol specifying the evaluation backend. Choices are 'url or
+'curl. 'url will use the built in url package and 'curl will use
+the binary. Ensure `httprepl-curl-exec' is correctly set when
+using 'curl. This should default to 'curl when the binary can be
+found and this is the recommended backend."
   :type 'symbol
   :group 'httprepl)
 
@@ -293,7 +314,6 @@ new state."
           (httprepl-p-get-state result))))))
 
 ;;; evaluator
-;;; TODO: write an url-based evaluator
 
 (defun httprepl-eval-curl-header-args (headers)
   (-mapcat (lambda (header)
@@ -432,7 +452,41 @@ new state."
   "Keymap for `httprepl-mode'.")
 
 (define-derived-mode httprepl-mode comint-mode "Httprepl"
-  "TODO"
+  "Major mode for interactively evaluating HTTP requests. Derives
+from comint-mode.
+
+Requests should be of the form:
+
+------------
+> GET|POST|PUT|DELETE|OPTIONS|HEAD|TRACE|CONNECT uri
+Header: value
+Another-Header: value
+
+Body of the request.
+------------
+
+For example:
+
+------------
+PUT http://httpbin.org/put
+Content-Type: text/plain
+
+This is the body of the request
+------------
+
+Extra headers and a request body are optional.
+
+By default, you may use M-j to enter line breaks without sending
+the request for evaluation.
+
+`httprepl-send-input' is used for evaluating requests.
+
+`httprepl-open-response' is used to open the last response in the
+buffer defined by `httprepl-response-buffer-name'. This will be
+manipulated by the functions specified in
+`httprepl-response-middleware'
+
+Customized bindings may be defined in `httprepl-mode-map'."
   :group 'httprepl
 
   (setq comint-prompt-regexp (concat "^" (regexp-quote httprepl-prompt)))
@@ -452,7 +506,10 @@ new state."
       (httprepl-print httprepl-header))))
 
 (defun httprepl ()
-  "TODO"
+  "Interactively evaluate HTTP requests at a REPL-like
+interface. Switches to the buffer specified by
+`httprepl-buffer-name', or creates it if it does not exist. See
+`httprepl-mode' for a reference on constructing requests."
   (interactive)
   (let ((buffer (get-buffer httprepl-buffer-name)))
     (pop-to-buffer-same-window
