@@ -1,7 +1,7 @@
 # README
 
 httprepl.el allows you to interactively make HTTP requests at a
-REPL-like UI.
+REPL-like UI within Emacs.
 
 ## Installation
 
@@ -31,11 +31,11 @@ This has been tested on Emacs 24.3 on Linux and Mac OS X.
 
 * Make HTTP requests using Emacs built in url package. This should
   work for environments without curl.
-* Make HTTP requests using curl
+* Make HTTP requests using curl.
 * Supports GET, POST, PUT, DELETE, OPTIONS, HEAD, TRACE and CONNECT
   requests.
-* Supports adding extra headers
-* Supports adding inline request bodies
+* Supports adding extra headers.
+* Supports adding inline request bodies.
 * Supports opening responses in a new buffer using C-c C-c. Based on
   the content-type of the response a sequence of functions can be
   applied to this buffer. This allows for syntax-highlighting,
