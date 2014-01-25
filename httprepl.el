@@ -322,6 +322,24 @@ new state."
     (set-process-filter process (httprepl-insertion-filter (current-buffer)))
     nil))
 
+(defun httprepl-eval-url-callback (buffer)
+  (lambda (status)
+    (debug-msg status)
+    (let ((response (buffer-string)))
+      (with-current-buffer buffer
+        (httprepl-print response)))))
+
+(defun httprepl-eval-url (method url headers entity)
+  (let ((url-request-data entity)
+        (url-request-method method)
+        (url-request-extra-headers headers))
+    (url-retrieve url (httprepl-eval-url-callback (current-buffer)))
+    nil))
+
+(defun httprepl-eval-dispatch (&rest args)
+  (apply (if (eq httprepl-backend 'url)
+             'httprepl-eval-url 'httprepl-eval-curl) args))
+
 (defun httprepl-eval (expr)
   (if (httprepl-p-error-p expr) expr
     (let* ((url (httprepl-apply-middleware
@@ -329,7 +347,7 @@ new state."
            (method (s-upcase (cdr (assoc 'method expr))))
            (headers (cdr (assoc 'headers expr)))
            (entity (cdr (assoc 'entity expr))))
-      (httprepl-eval-curl method url headers entity))))
+      (httprepl-eval-dispatch method url headers entity))))
 
 ;;; open response
 
