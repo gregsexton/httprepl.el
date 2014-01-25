@@ -527,6 +527,7 @@ Customized bindings may be defined in `httprepl-mode-map'."
            '(rear-nonsticky t field output inhibit-line-move-field-capture t))))
       (httprepl-print httprepl-header))))
 
+;;;###autoload
 (defun httprepl ()
   "Interactively evaluate HTTP requests at a REPL-like
 interface. Switches to the buffer specified by
