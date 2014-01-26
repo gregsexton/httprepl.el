@@ -1,4 +1,4 @@
-;;; httprepl.el -- An HTTP REPL  -*- lexical-binding: t -*-
+;;; httprepl.el --- An HTTP REPL  -*- lexical-binding: t -*-
 
 ;; Author: Greg Sexton <gregsexton@gmail.com>
 
@@ -542,3 +542,5 @@ interface. Switches to the buffer specified by
     (httprepl-mode)))
 
 (provide 'httprepl)
+
+;;; httprepl.el ends here
