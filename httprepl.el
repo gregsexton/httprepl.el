@@ -1,6 +1,10 @@
-;;; httprepl.el -- An HTTP REPL  -*- lexical-binding: t -*-
+;;; httprepl.el --- An HTTP REPL  -*- lexical-binding: t -*-
 
 ;; Author: Greg Sexton <gregsexton@gmail.com>
+;; Version: 0.0.1
+;; Keywords: http, repl
+;; URL: https://github.com/gregsexton/httprepl.el
+;; Package-Requires: ((s "1.9.0") (dash "2.5.0"))
 
 ;; The MIT License (MIT)
 
@@ -542,3 +546,5 @@ interface. Switches to the buffer specified by
     (httprepl-mode)))
 
 (provide 'httprepl)
+
+;;; httprepl.el ends here
