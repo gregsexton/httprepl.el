@@ -1,4 +1,4 @@
-;;; httprepl.el -- An HTTP REPL  -*- lexical-binding: t -*-
+;;; httprepl.el --- An HTTP REPL  -*- lexical-binding: t -*-
 
 ;; Author: Greg Sexton <gregsexton@gmail.com>
 
