@@ -1,7 +1,7 @@
 ;;; httprepl.el --- An HTTP REPL  -*- lexical-binding: t -*-
 
 ;; Author: Greg Sexton <gregsexton@gmail.com>
-;; Version: 0.0.1
+;; Version: 1.0
 ;; Keywords: http, repl
 ;; URL: https://github.com/gregsexton/httprepl.el
 ;; Package-Requires: ((s "1.9.0") (dash "2.5.0"))
