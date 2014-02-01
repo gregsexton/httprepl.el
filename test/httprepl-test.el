@@ -1,5 +1,3 @@
-(require 's)
-
 (ert-deftest httprepl-read-simple ()
   (should (equal "GET"
                  (cdr (assoc 'method (httprepl-read "GET http://www.gregsexton.org")))))
