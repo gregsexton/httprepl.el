@@ -370,7 +370,6 @@ new state."
 
 (defun httprepl-eval-url-callback (buffer)
   (lambda (status)
-    (debug-msg status)
     (let ((response (buffer-string)))
       (with-current-buffer buffer
         (httprepl-print response)))))
