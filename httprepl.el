@@ -483,7 +483,7 @@ from comint-mode.
 Requests should be of the form:
 
 ------------
-> GET|POST|PUT|DELETE|OPTIONS|HEAD|TRACE|CONNECT uri
+> GET|POST|PUT|DELETE|OPTIONS|HEAD|PATCH|TRACE|CONNECT uri
 Header: value
 Another-Header: value
 

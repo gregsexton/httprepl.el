@@ -32,8 +32,8 @@ This has been tested on Emacs 24.3 on Linux and Mac OS X.
 * Make HTTP requests using Emacs built in url package. This should
   work for environments without curl.
 * Make HTTP requests using curl.
-* Supports GET, POST, PUT, DELETE, OPTIONS, HEAD, TRACE and CONNECT
-  requests.
+* Supports GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH, TRACE and
+  CONNECT requests.
 * Supports adding extra headers.
 * Supports adding inline request bodies.
 * Supports opening responses in a new buffer using C-c C-c. Based on
