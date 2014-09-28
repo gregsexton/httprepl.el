@@ -166,7 +166,7 @@ found and this is the recommended backend."
 ;;; lexer
 
 (defun httprepl-get-token (input)
-  (let ((rexps '((http-method . "\\(GET\\|POST\\|PUT\\|DELETE\\|OPTIONS\\|HEAD\\|TRACE\\|CONNECT\\)")
+  (let ((rexps '((http-method . "\\(GET\\|POST\\|PUT\\|DELETE\\|OPTIONS\\|HEAD\\|TRACE\\|CONNECT\\|PATCH\\)")
                  (header-sep . ":")
                  (newline . "\n")
                  (ws . "[ \t]+")
