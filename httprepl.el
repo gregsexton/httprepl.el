@@ -360,12 +360,16 @@ new state."
 (defun httprepl-insertion-filter (buffer)
   (lambda (proc string)
     (with-current-buffer buffer
-      (httprepl-print string))))
+      (httprepl-insert string))))
 
 (defun httprepl-eval-curl (method url headers entity)
   (let* ((args (httprepl-eval-curl-args method url headers entity))
          (process (apply 'start-process "httprepl-curl" nil httprepl-curl-exec args)))
     (set-process-filter process (httprepl-insertion-filter (current-buffer)))
+    ;; print a new prompt once process has finished
+    (set-process-sentinel process (lambda (proc event)
+                                    (when (not (process-live-p proc))
+                                      (httprepl-print ""))))
     nil))
 
 (defun httprepl-eval-url-callback (buffer)
